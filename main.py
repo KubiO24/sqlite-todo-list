@@ -1,16 +1,47 @@
-# This is a sample Python script.
+import sys
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import (
+    QApplication, QLabel, QMainWindow,
+    QPushButton, QVBoxLayout, QWidget
+)
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+class NewTaskWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        self.label = QLabel("New Task Window")
+        layout.addWidget(self.label)
+        self.setLayout(layout)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setFixedSize(QSize(400, 300))
+        self.setWindowTitle("To Do List")
+        self.newTaskWindow = NewTaskWindow()
+
+        layout = QVBoxLayout()
+
+        self.button = QPushButton("New Task")
+        self.button.clicked.connect(self.new_task)
+        layout.addWidget(self.button)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+    def new_task(self):
+        if self.newTaskWindow.isVisible():
+            self.newTaskWindow.hide()
+        else:
+            self.newTaskWindow.show()
+
+
+app = QApplication(sys.argv)
+mainWindow = MainWindow()
+mainWindow.show()
+app.exec()
