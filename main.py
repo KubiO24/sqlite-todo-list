@@ -51,6 +51,7 @@ class NewTaskWindow(QWidget):
             return
 
         conn.execute(f"INSERT INTO tasks (text, date) VALUES ('{text}', '{formatted_date}')")
+        self.close()
 
 
 class MainWindow(QMainWindow):
