@@ -1,6 +1,7 @@
 import sys
+import sqlite3
 
-from PySide6.QtCore import QSize, Qt, QDateTime
+from PySide6.QtCore import QSize, QDateTime
 from PySide6.QtWidgets import (
     QApplication, QLabel, QMainWindow,
     QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout, QDateEdit
@@ -44,12 +45,12 @@ class NewTaskWindow(QWidget):
     def add_task(self):
         text = self.text_edit.text().strip()
         date = self.date_edit.date()
+        formatted_date = f"{date.year()}-{date.month()}-{date.day()}"
 
         if text == "":
             return
 
-        print(text)
-        print(date)
+        conn.execute(f"INSERT INTO tasks (text, date) VALUES ('{text}', '{formatted_date}')")
 
 
 class MainWindow(QMainWindow):
@@ -79,6 +80,8 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    conn = sqlite3.connect("tasks.db")
+    conn.execute("CREATE TABLE IF NOT EXISTS tasks(text TEXT, date TEXT)")
     w = MainWindow()
     w.show()
     sys.exit(app.exec())
