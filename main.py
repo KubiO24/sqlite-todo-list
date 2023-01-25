@@ -59,6 +59,57 @@ class NewTaskWindow(QWidget):
 
         self.close()
 
+class EditTaskWindow(QWidget):
+    def __init__(self, old_task_text, old_task_date):
+        super().__init__()
+
+        self.old_task_text = old_task_text
+        self.old_task_date = old_task_date
+
+        self.setFixedSize(QSize(220, 150))
+        self.setWindowTitle("Edit Task")
+
+        layout = QVBoxLayout()
+
+        text_layout = QHBoxLayout()
+        text_label = QLabel("text: ")
+        text_label.setFixedWidth(40)
+        text_layout.addWidget(text_label)
+        self.text_edit = QLineEdit(self.old_task_text)
+        self.text_edit.setFixedWidth(150)
+        text_layout.addWidget(self.text_edit)
+        layout.addLayout(text_layout)
+
+        date_layout = QHBoxLayout()
+        date_label = QLabel("date: ")
+        date_label.setFixedWidth(40)
+        date_layout.addWidget(date_label)
+        self.date_edit = QDateTimeEdit(calendarPopup=True)
+        self.date_edit.setDateTime(datetime.strptime(self.old_task_date, "%Y-%m-%d %H:%M"))
+        self.date_edit.setFixedWidth(150)
+        date_layout.addWidget(self.date_edit)
+        layout.addLayout(date_layout)
+
+        self.add_button = QPushButton("Save")
+        self.add_button.clicked.connect(self.save_task)
+        layout.addWidget(self.add_button)
+
+        self.setLayout(layout)
+
+    def save_task(self):
+        task_text = self.text_edit.text().strip()
+        task_date = self.date_edit.dateTime()
+        formatted_date = task_date.toString("yyyy-MM-dd HH:mm")
+
+        if task_text == "":
+            return
+
+        conn.execute(f"UPDATE tasks SET text='{task_text}', date='{formatted_date}' WHERE text='{self.old_task_text}' AND date='{self.old_task_date}' AND is_done='0'")
+        conn.commit()
+        refresh_tasks()
+
+        self.close()
+
 
 class MainWindow(QMainWindow):
     task_list = QVBoxLayout()
@@ -121,7 +172,7 @@ def refresh_tasks():
         task_text = row[0]
         task_date = row[1]
         task_is_done = row[2]
-        task_date_format = datetime.strptime(task_date, "%Y-%m-%d %M:%S")
+        task_date_format = datetime.strptime(task_date, "%Y-%m-%d %H:%M")
 
         task_container = QWidget()
         if task_is_done:
@@ -162,6 +213,17 @@ def refresh_tasks():
                 color: rgb(50, 50, 50);
             }
             
+            QPushButton#edit_button {
+                font-size: 12px;
+                border: none;
+                font-weight: bold;
+                color: rgb(0, 0, 220);
+            }
+            
+            QPushButton#edit_button:hover {
+                color: rgb(0, 0, 170);
+            }
+            
             QPushButton#done_button {
                 font-size: 15px;
                 border: none;
@@ -199,15 +261,21 @@ def refresh_tasks():
         task_date_label.setObjectName("date")
         task_layout.addWidget(task_date_label)
 
+        task_layout.addStretch()
+
         if not task_is_done:
-            task_layout.addStretch()
+            edit_button = QPushButton("Edit")
+            edit_button.setObjectName("edit_button")
+            edit_button.setFixedWidth(20)
+            edit_button.clicked.connect(partial(edit_task, task_text, task_date))
+            task_layout.addWidget(edit_button)
+
             done_button = QPushButton("✓")
             done_button.setObjectName("done_button")
             done_button.setFixedWidth(15)
             done_button.clicked.connect(partial(done_task, task_text, task_date, task_is_done))
             task_layout.addWidget(done_button)
-        else:
-            task_layout.addStretch()
+
 
         delete_button = QPushButton("X")
         delete_button.setObjectName("delete_button")
@@ -227,6 +295,11 @@ def delete_task(task_text, task_date, task_is_done):
     conn.commit()
     refresh_tasks()
     return
+
+def edit_task(task_text, task_date):
+    w.editTaskWindow = EditTaskWindow(task_text, task_date)
+    w.editTaskWindow.show()
+
 
 
 if __name__ == "__main__":
