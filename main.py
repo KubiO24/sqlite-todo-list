@@ -63,16 +63,25 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setFixedSize(QSize(300, 500))
+        self.setFixedWidth(300)
         self.setWindowTitle("To Do List")
         self.newTaskWindow = NewTaskWindow()
 
         layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignTop)
+
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignCenter)
+        button_layout.setContentsMargins(0, 10, 0, 10) # left, top, right, bottom
 
         self.button = QPushButton("New Task")
+        self.button.setFixedWidth(150)
         self.button.clicked.connect(self.new_task)
-        layout.addWidget(self.button)
 
+        button_layout.addWidget(self.button)
+        layout.addLayout(button_layout)
+
+        self.task_list.setContentsMargins(0, 0, 0, 10) # left, top, right, bottom
         layout.addLayout(self.task_list)
 
         container = QWidget()
@@ -88,11 +97,23 @@ class MainWindow(QMainWindow):
 
 def refresh_tasks():
     while (child := MainWindow.task_list.takeAt(0)) is not None:
+        print(child.widget())
         child.widget().deleteLater()
 
     cur = conn.cursor()
     cur.execute("SELECT * FROM tasks")
     rows = cur.fetchall()
+
+    if not rows:
+        no_task_container = QWidget()
+        no_task_layout = QHBoxLayout(no_task_container)
+        MainWindow.task_list.addWidget(no_task_container)
+        no_task_text = QLabel("Your task list is empty. Create new one.")
+        no_task_text.setStyleSheet("color: rgb(100, 100, 100);")
+        no_task_layout.addStretch()
+        no_task_layout.addWidget(no_task_text)
+        no_task_layout.addStretch()
+        return
 
     for row in rows:
         task_container = QWidget()
@@ -132,4 +153,5 @@ if __name__ == "__main__":
     conn.execute("CREATE TABLE IF NOT EXISTS tasks(text TEXT, date TEXT)")
     w = MainWindow()
     w.show()
+    refresh_tasks()
     sys.exit(app.exec())
