@@ -97,7 +97,6 @@ class MainWindow(QMainWindow):
 
 def refresh_tasks():
     while (child := MainWindow.task_list.takeAt(0)) is not None:
-        print(child.widget())
         child.widget().deleteLater()
 
     cur = conn.cursor()
@@ -132,6 +131,17 @@ def refresh_tasks():
             QLabel#date {
                 color: rgb(50, 50, 50);
             }
+            
+            QPushButton#delete_button {
+                font-size: 20px;
+                border: none;
+                font-weight: bold;
+                color: red;
+            }
+            
+            QPushButton#delete_button:hover {
+                color: rgb(200, 0, 0);
+            }
         """)
 
         task_layout = QHBoxLayout(task_container)
@@ -145,6 +155,21 @@ def refresh_tasks():
         task_date = QLabel(row[1])
         task_date.setObjectName("date")
         task_layout.addWidget(task_date)
+        task_layout.addStretch()
+
+        delete_button_layout = QVBoxLayout()
+        delete_button = QPushButton("X")
+        delete_button.setObjectName("delete_button")
+        delete_button.setFixedSize(20, 20)
+        delete_button.clicked.connect(delete_task)
+
+        delete_button_layout.addWidget(delete_button)
+        task_layout.addLayout(delete_button_layout)
+
+
+def delete_task():
+    print("delete")
+    return
 
 
 if __name__ == "__main__":
