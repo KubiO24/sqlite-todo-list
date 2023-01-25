@@ -3,13 +3,10 @@ import sqlite3
 from functools import partial
 from datetime import date, datetime
 
-from PySide6.QtCore import QSize, QDateTime, Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
-    QApplication, QLabel, QMainWindow,
-    QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout, QDateEdit, QFrame, QGraphicsDropShadowEffect,
-    QDateTimeEdit
+    QApplication, QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout, QDateTimeEdit
 )
-
 
 class NewTaskWindow(QWidget):
     def __init__(self):
