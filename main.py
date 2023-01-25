@@ -1,6 +1,6 @@
 import sys
 import sqlite3
-from newTaskWindow import NewTaskWindow
+from new_task_window import NewTaskWindow
 
 from PySide6.QtCore import QSize, QDateTime
 from PySide6.QtWidgets import (
