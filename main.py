@@ -1,10 +1,10 @@
 import sys
 import sqlite3
 
-from PySide6.QtCore import QSize, QDateTime
+from PySide6.QtCore import QSize, QDateTime, Qt
 from PySide6.QtWidgets import (
     QApplication, QLabel, QMainWindow,
-    QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout, QDateEdit
+    QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout, QDateEdit, QFrame, QGraphicsDropShadowEffect
 )
 
 
@@ -50,12 +50,9 @@ class NewTaskWindow(QWidget):
         if text == "":
             return
 
-        conn = sqlite3.connect("tasks.db")
         conn.execute(f"INSERT INTO tasks (text, date) VALUES ('{text}', '{formatted_date}')")
-        conn.close()
 
-        button = QPushButton("New Task")
-        MainWindow.task_list.addWidget(button)
+        refresh_tasks()
 
         self.close()
 
@@ -87,6 +84,46 @@ class MainWindow(QMainWindow):
             self.newTaskWindow.hide()
         else:
             self.newTaskWindow.show()
+
+
+def refresh_tasks():
+    while (child := MainWindow.task_list.takeAt(0)) is not None:
+        child.widget().deleteLater()
+
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks")
+    rows = cur.fetchall()
+
+    for row in rows:
+        task_container = QWidget()
+        task_container.setObjectName("container")
+        task_container.setMaximumHeight(30)
+        task_container.setStyleSheet("""
+            QWidget#container {
+                background-color: rgba(0, 0, 0, 0.05);
+                border-radius: 5px;
+            }
+            
+            QLabel#text {
+                font-weight: bold;
+            }
+            
+            QLabel#date {
+                color: rgb(50, 50, 50);
+            }
+        """)
+
+        task_layout = QHBoxLayout(task_container)
+        MainWindow.task_list.addWidget(task_container)
+
+        task_text = QLabel(row[0])
+        task_text.setObjectName("text")
+        task_layout.addWidget(task_text)
+        task_layout.addStretch()
+
+        task_date = QLabel(row[1])
+        task_date.setObjectName("date")
+        task_layout.addWidget(task_date)
 
 
 if __name__ == "__main__":
