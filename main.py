@@ -1,10 +1,13 @@
 import sys
 import sqlite3
+from functools import partial
+from datetime import date, datetime
 
 from PySide6.QtCore import QSize, QDateTime, Qt
 from PySide6.QtWidgets import (
     QApplication, QLabel, QMainWindow,
-    QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout, QDateEdit, QFrame, QGraphicsDropShadowEffect
+    QPushButton, QVBoxLayout, QWidget, QLineEdit, QHBoxLayout, QDateEdit, QFrame, QGraphicsDropShadowEffect,
+    QDateTimeEdit
 )
 
 
@@ -30,8 +33,8 @@ class NewTaskWindow(QWidget):
         date_label = QLabel("date: ")
         date_label.setFixedWidth(40)
         date_layout.addWidget(date_label)
-        self.date_edit = QDateEdit(calendarPopup=True)
-        self.date_edit.setDateTime(QDateTime.currentDateTime())
+        self.date_edit = QDateTimeEdit(calendarPopup=True)
+        self.date_edit.setDateTime(datetime.today())
         self.date_edit.setFixedWidth(150)
         date_layout.addWidget(self.date_edit)
         layout.addLayout(date_layout)
@@ -43,15 +46,15 @@ class NewTaskWindow(QWidget):
         self.setLayout(layout)
 
     def add_task(self):
-        text = self.text_edit.text().strip()
-        date = self.date_edit.date()
-        formatted_date = f"{date.year()}-{date.month()}-{date.day()}"
+        task_text = self.text_edit.text().strip()
+        task_date = self.date_edit.dateTime()
+        formatted_date = task_date.toString("yyyy-MM-dd HH:mm")
 
-        if text == "":
+        if task_text == "":
             return
 
-        conn.execute(f"INSERT INTO tasks (text, date) VALUES ('{text}', '{formatted_date}')")
-
+        conn.execute(f"INSERT INTO tasks (text, date, is_done) VALUES ('{task_text}', '{formatted_date}', '0')")
+        conn.commit()
         refresh_tasks()
 
         self.close()
@@ -63,7 +66,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setFixedWidth(300)
+        self.setFixedWidth(400)
         self.setWindowTitle("To Do List")
         self.newTaskWindow = NewTaskWindow()
 
@@ -100,7 +103,7 @@ def refresh_tasks():
         child.widget().deleteLater()
 
     cur = conn.cursor()
-    cur.execute("SELECT * FROM tasks")
+    cur.execute("SELECT * FROM tasks ORDER BY is_done DESC, date ASC")
     rows = cur.fetchall()
 
     if not rows:
@@ -115,12 +118,39 @@ def refresh_tasks():
         return
 
     for row in rows:
+        task_text = row[0]
+        task_date = row[1]
+        task_is_done = row[2]
+        task_date_format = datetime.strptime(task_date, "%Y-%m-%d %M:%S")
+
         task_container = QWidget()
-        task_container.setObjectName("container")
+        if task_is_done:
+            task_container.setObjectName("container_done")
+        elif task_date_format < datetime.today():
+            task_container.setObjectName("container_expired")
+        elif task_date_format == date.today():
+            task_container.setObjectName("container_today")
+        else:
+            task_container.setObjectName("container")
         task_container.setMaximumHeight(30)
         task_container.setStyleSheet("""
             QWidget#container {
                 background-color: rgba(0, 0, 0, 0.05);
+                border-radius: 5px;
+            }
+            
+            QWidget#container_expired {
+                background-color: rgba(255, 0, 0, 0.15);
+                border-radius: 5px;
+            }
+            
+            QWidget#container_today {
+                background-color: rgba(255, 190, 0, 0.15);
+                border-radius: 5px;
+            }
+            
+            QWidget#container_done {
+                background-color: rgba(0, 255, 0, 0.15);
                 border-radius: 5px;
             }
             
@@ -132,8 +162,19 @@ def refresh_tasks():
                 color: rgb(50, 50, 50);
             }
             
+            QPushButton#done_button {
+                font-size: 15px;
+                border: none;
+                font-weight: bold;
+                color: rgb(0, 220, 0);
+            }
+            
+            QPushButton#done_button:hover {
+                color: rgb(0, 170, 0);
+            }
+            
             QPushButton#delete_button {
-                font-size: 20px;
+                font-size: 15px;
                 border: none;
                 font-weight: bold;
                 color: red;
@@ -147,35 +188,51 @@ def refresh_tasks():
         task_layout = QHBoxLayout(task_container)
         MainWindow.task_list.addWidget(task_container)
 
-        task_text = QLabel(row[0])
-        task_text.setObjectName("text")
-        task_layout.addWidget(task_text)
-        task_layout.addStretch()
+        task_text_label = QLabel(task_text)
+        task_text_label.setFixedWidth(150)
+        task_text_label.setObjectName("text")
+        task_layout.addWidget(task_text_label)
 
-        task_date = QLabel(row[1])
-        task_date.setObjectName("date")
-        task_layout.addWidget(task_date)
-        task_layout.addStretch()
 
-        delete_button_layout = QVBoxLayout()
+        task_date_label = QLabel(task_date)
+        task_date_label.setFixedWidth(90)
+        task_date_label.setObjectName("date")
+        task_layout.addWidget(task_date_label)
+
+        if not task_is_done:
+            task_layout.addStretch()
+            done_button = QPushButton("✓")
+            done_button.setObjectName("done_button")
+            done_button.setFixedWidth(15)
+            done_button.clicked.connect(partial(done_task, task_text, task_date, task_is_done))
+            task_layout.addWidget(done_button)
+        else:
+            task_layout.addStretch()
+
         delete_button = QPushButton("X")
         delete_button.setObjectName("delete_button")
-        delete_button.setFixedSize(20, 20)
-        delete_button.clicked.connect(delete_task)
-
-        delete_button_layout.addWidget(delete_button)
-        task_layout.addLayout(delete_button_layout)
+        delete_button.setFixedWidth(15)
+        delete_button.clicked.connect(partial(delete_task, task_text, task_date, task_is_done))
+        task_layout.addWidget(delete_button)
 
 
-def delete_task():
-    print("delete")
+def done_task(task_text, task_date, task_is_done):
+    conn.execute(f"UPDATE tasks SET is_done='1' WHERE text='{task_text}' AND date='{task_date}' AND is_done='{task_is_done}'")
+    conn.commit()
+    refresh_tasks()
+    return
+
+def delete_task(task_text, task_date, task_is_done):
+    conn.execute(f"DELETE FROM tasks WHERE text='{task_text}' AND date='{task_date}' AND is_done='{task_is_done}'")
+    conn.commit()
+    refresh_tasks()
     return
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     conn = sqlite3.connect("tasks.db")
-    conn.execute("CREATE TABLE IF NOT EXISTS tasks(text TEXT, date TEXT)")
+    conn.execute("CREATE TABLE IF NOT EXISTS tasks(text TEXT, date TEXT, is_done BOOLEAN)")
     w = MainWindow()
     w.show()
     refresh_tasks()
