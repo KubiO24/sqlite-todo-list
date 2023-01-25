@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
         button_layout.setContentsMargins(0, 10, 0, 10) # left, top, right, bottom
 
         self.button = QPushButton("New Task")
-        self.button.setFixedWidth(150)
+        self.button.setFixedWidth(120)
         self.button.clicked.connect(self.new_task)
 
         button_layout.addWidget(self.button)
@@ -108,7 +108,7 @@ def refresh_tasks():
         no_task_container = QWidget()
         no_task_layout = QHBoxLayout(no_task_container)
         MainWindow.task_list.addWidget(no_task_container)
-        no_task_text = QLabel("Your task list is empty. Create new one.")
+        no_task_text = QLabel("Your to do list is empty.")
         no_task_text.setStyleSheet("color: rgb(100, 100, 100);")
         no_task_layout.addStretch()
         no_task_layout.addWidget(no_task_text)
